@@ -1,10 +1,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <application>
-        <activity android:name="com.microblink.blinkid.help.HelpActivity"/>
         <activity android:name="com.microblink.blinkid.result.activity.RecognizerBundleResultActivity"/>
-        <activity android:name="com.microblink.blinkid.result.activity.FieldByFieldResultActivity"/>
-        <activity android:name="com.microblink.blinkid.result.activity.DocumentCaptureResultActivity"/>
     </application>
 
 </manifest>
