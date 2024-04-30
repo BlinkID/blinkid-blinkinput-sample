@@ -24,6 +24,7 @@ import com.microblink.blinkid.entities.recognizers.blinkid.generic.BlinkIdSingle
 import com.microblink.blinkid.hardware.SuccessCallback;
 import com.microblink.blinkid.hardware.orientation.Orientation;
 import com.microblink.blinkid.metadata.MetadataCallbacks;
+import com.microblink.blinkid.metadata.detection.FailedDetectionCallback;
 import com.microblink.blinkid.metadata.detection.quad.DisplayableQuadDetection;
 import com.microblink.blinkid.metadata.detection.quad.QuadDetectionCallback;
 import com.microblink.blinkid.recognition.RecognitionSuccessType;
@@ -139,7 +140,7 @@ public class MyScanActivity extends Activity implements ScanResultListener, Came
         // each of them can be found in javadoc. This method automatically adds the QuadView as a
         // child of RecognizerView.
         // Here we use preset which sets up quad view in the same style as used in built-in BlinkID DocumentScan activity.
-        mQvManager = QuadViewManagerFactory.createQuadViewFromPreset(mRecognizerView, QuadViewPreset.DEFAULT_FROM_DOCUMENT_SCAN_ACTIVITY);
+        mQvManager = QuadViewManagerFactory.createQuadViewFromPreset(mRecognizerView, QuadViewPreset.DEFAULT_CORNERS_FROM_PHOTOPAY_ACTIVITY);
 
         // initialize buttons and status view
         View view = getLayoutInflater().inflate(R.layout.default_blinkid_viewfinder, null);
@@ -171,7 +172,8 @@ public class MyScanActivity extends Activity implements ScanResultListener, Came
             @Override
             public void onQuadDetection(@NonNull DisplayableQuadDetection displayableQuadDetection) {
                 // begin quadrilateral animation to detected quadrilateral
-                // mQvManager.animateQuadToDetectionPosition(displayableQuadDetection);
+                mQvManager.animateQuadToDetectionPosition(displayableQuadDetection);
+
                 DetectionStatus detectionStatus = displayableQuadDetection.getDetectionStatus();
 
                 // displays message about detection status to the user
@@ -184,6 +186,13 @@ public class MyScanActivity extends Activity implements ScanResultListener, Came
                 } else if (detectionStatus == DetectionStatus.DOCUMENT_PARTIALLY_VISIBLE) {
                     displayText(R.string.msg_partial_detected);
                 }
+            }
+        });
+
+        metadataCallbacks.setFailedDetectionCallback(new FailedDetectionCallback() {
+            @Override
+            public void onDetectionFailed() {
+                mQvManager.animateQuadToDefaultPosition();
             }
         });
 
