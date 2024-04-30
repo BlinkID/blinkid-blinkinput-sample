@@ -21,13 +21,8 @@ import com.microblink.blinkid.image.highres.HighResImageWrapper;
 
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.Locale;
 
 public class ImageUtils {
 
@@ -100,58 +95,6 @@ public class ImageUtils {
             } catch (IOException e) {
                 e.printStackTrace();
                 Toast.makeText(context, e.toString(), Toast.LENGTH_SHORT).show();
-            }
-        }
-    }
-
-    public static void storeImage(@NonNull Image image, String imageName) {
-        DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd-HH-mm-ss", Locale.US);
-        String dateString = dateFormat.format(new Date());
-        String fullImageName = imageName + " - " + image.getImageFormat().name() + " - " + image.getImageOrientation().name()  + " - " + dateString + ".jpg";
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            storeImageToScopedStorage(fullImageName, FRAMES_FOLDER, image.convertToBitmap());
-        } else {
-            final String imagesFolderPath = Environment.getExternalStorageDirectory().getAbsolutePath() + "/" + FRAMES_FOLDER;
-            File imagesDir = new File(imagesFolderPath);
-            if (!imagesDir.exists()) {
-                if (!imagesDir.mkdirs()) {
-                    Log.w(ImageUtils.class, "Failed to create folder " + imagesFolderPath);
-                }
-            }
-
-            String filename = imagesFolderPath + "/" + fullImageName;
-            Bitmap b = image.convertToBitmap();
-            if (b == null) {
-                Log.e(ImageUtils.class, "Failed to convert image to bitmap!");
-                return;
-            }
-            FileOutputStream fos = null;
-            try {
-                fos = new FileOutputStream(filename);
-                boolean success = b.compress(Bitmap.CompressFormat.JPEG, 100, fos);
-                if (!success) {
-                    Log.e(ImageUtils.class, "Failed to compress bitmap!");
-                    try {
-                        fos.close();
-                    } catch (IOException ignored) {
-                    } finally {
-                        fos = null;
-                    }
-                    boolean deleteSuccess = new File(filename).delete();
-                    if (!deleteSuccess) {
-                        Log.e(ImageUtils.class, "Failed to delete {}", filename);
-                    }
-                }
-            } catch (FileNotFoundException e) {
-                Log.e(ImageUtils.class, e, "Failed to save image");
-            } finally {
-                if (fos != null) {
-                    try {
-                        fos.close();
-                    } catch (IOException ignored) {
-                    }
-                }
             }
         }
     }
