@@ -29,7 +29,10 @@ android {
 }
 
 dependencies {
-    implementation project(':LibBlinkIDCustom')
+    implementation("com.microblink:blinkid:${rootProject.ext.blinkIdVersion}@aar") {
+        transitive = true
+    }
+    implementation project(':LibBlinkInput')
     implementation "androidx.appcompat:appcompat:${rootProject.ext.appCompatVersion}"
     implementation project(':LibUtils')
 }

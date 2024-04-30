@@ -18,18 +18,10 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 
-import com.microblink.blinkid.entities.detectors.quad.document.DocumentDetector;
-import com.microblink.blinkid.entities.detectors.quad.document.DocumentSpecification;
-import com.microblink.blinkid.entities.detectors.quad.document.DocumentSpecificationPreset;
 import com.microblink.blinkid.entities.processors.imageReturn.ImageReturnProcessor;
 import com.microblink.blinkid.entities.recognizers.Recognizer;
 import com.microblink.blinkid.entities.recognizers.RecognizerBundle;
-import com.microblink.blinkid.entities.recognizers.blinkbarcode.barcode.BarcodeRecognizer;
 import com.microblink.blinkid.entities.recognizers.blinkid.generic.BlinkIdSingleSideRecognizer;
-import com.microblink.blinkid.entities.recognizers.detector.DetectorRecognizer;
-import com.microblink.blinkid.entities.recognizers.templating.ProcessorGroup;
-import com.microblink.blinkid.entities.recognizers.templating.TemplatingClass;
-import com.microblink.blinkid.entities.recognizers.templating.dewarpPolicies.DPIBasedDewarpPolicy;
 import com.microblink.blinkid.geometry.Rectangle;
 import com.microblink.blinkid.hardware.SuccessCallback;
 import com.microblink.blinkid.hardware.orientation.Orientation;
@@ -220,50 +212,50 @@ public class MyScanActivity extends Activity implements ScanResultListener, Came
         return new Recognizer[]{genericRecognizer};
     }
 
-    private Recognizer[] createFallbackRecognizers() {
-        BarcodeRecognizer barcodeRecognizer = new BarcodeRecognizer();
-        barcodeRecognizer.setScanPdf417(true);
-        barcodeRecognizer.setScanQrCode(true);
-        barcodeRecognizer.setScanUncertain(true);
-
-        // detector recognizer
-        DocumentDetector idCardDetector = buildDocumentDetectorFromPreset(DocumentSpecificationPreset.DOCUMENT_SPECIFICATION_PRESET_ID1_CARD);
-        DetectorRecognizer detectorRecognizer = new DetectorRecognizer(idCardDetector);
-
-        // processor that will simply save obtained image
-        ImageReturnProcessor imageReturnProcessor = new ImageReturnProcessor();
-        // processor group that will be executed on the detected document location
-        ProcessorGroup processorGroup = new ProcessorGroup(
-                // process entire detected location
-                new Rectangle(0.f, 0.f, 1.f, 1.f),
-                // dewarp height will be calculated based on actual physical size of detected
-                // location and requested DPI
-                new DPIBasedDewarpPolicy(200),
-                // only image is needed
-                imageReturnProcessor
-        );
-
-        // Templating class is used to define how specific document type should be processed.
-        // Only image should be returned, which means that classification of the document
-        // based on the processed data is not needed, so only one document class is defined.
-        TemplatingClass documentClass = new TemplatingClass();
-        // prepared processor group is added to classification processor groups because
-        // they are executed before classification
-        documentClass.setClassificationProcessorGroups(processorGroup);
-        detectorRecognizer.setTemplatingClasses(documentClass);
-
-        return new Recognizer[]{barcodeRecognizer, detectorRecognizer};
-    }
-
-    private DocumentDetector buildDocumentDetectorFromPreset(DocumentSpecificationPreset documentSpecPreset) {
-        // create document specification from preset
-        DocumentSpecification documentSpec = DocumentSpecification.createFromPreset(documentSpecPreset);
-        // prepare document detector with defined document specification
-        DocumentDetector documentDetector = new DocumentDetector(documentSpec);
-        // set minimum number of stable detections to return detector result
-        documentDetector.setNumStableDetectionsThreshold(3);
-        return documentDetector;
-    }
+//    private Recognizer[] createFallbackRecognizers() {
+//        BarcodeRecognizer barcodeRecognizer = new BarcodeRecognizer();
+//        barcodeRecognizer.setScanPdf417(true);
+//        barcodeRecognizer.setScanQrCode(true);
+//        barcodeRecognizer.setScanUncertain(true);
+//
+//        // detector recognizer
+//        DocumentDetector idCardDetector = buildDocumentDetectorFromPreset(DocumentSpecificationPreset.DOCUMENT_SPECIFICATION_PRESET_ID1_CARD);
+//        DetectorRecognizer detectorRecognizer = new DetectorRecognizer(idCardDetector);
+//
+//        // processor that will simply save obtained image
+//        ImageReturnProcessor imageReturnProcessor = new ImageReturnProcessor();
+//        // processor group that will be executed on the detected document location
+//        ProcessorGroup processorGroup = new ProcessorGroup(
+//                // process entire detected location
+//                new Rectangle(0.f, 0.f, 1.f, 1.f),
+//                // dewarp height will be calculated based on actual physical size of detected
+//                // location and requested DPI
+//                new DPIBasedDewarpPolicy(200),
+//                // only image is needed
+//                imageReturnProcessor
+//        );
+//
+//        // Templating class is used to define how specific document type should be processed.
+//        // Only image should be returned, which means that classification of the document
+//        // based on the processed data is not needed, so only one document class is defined.
+//        TemplatingClass documentClass = new TemplatingClass();
+//        // prepared processor group is added to classification processor groups because
+//        // they are executed before classification
+//        documentClass.setClassificationProcessorGroups(processorGroup);
+//        detectorRecognizer.setTemplatingClasses(documentClass);
+//
+//        return new Recognizer[]{barcodeRecognizer, detectorRecognizer};
+//    }
+//
+//    private DocumentDetector buildDocumentDetectorFromPreset(DocumentSpecificationPreset documentSpecPreset) {
+//        // create document specification from preset
+//        DocumentSpecification documentSpec = DocumentSpecification.createFromPreset(documentSpecPreset);
+//        // prepare document detector with defined document specification
+//        DocumentDetector documentDetector = new DocumentDetector(documentSpec);
+//        // set minimum number of stable detections to return detector result
+//        documentDetector.setNumStableDetectionsThreshold(3);
+//        return documentDetector;
+//    }
 
 
     @Override
@@ -276,18 +268,18 @@ public class MyScanActivity extends Activity implements ScanResultListener, Came
         mMediaPlayer = MediaPlayer.create(this, R.raw.beep);
 
         // start the timer
-        if (mCustomTimer == null) {
-            mCustomTimer = new Timer();
-            mCustomTimer.schedule(new TimerTask() {
-                @Override
-                public void run() {
-                    if (mRecognizerView != null) {
-                        mRecognizerView.pauseScanning();
-                        handleTimeout();
-                    }
-                }
-            }, 5000);
-        }
+//        if (mCustomTimer == null) {
+//            mCustomTimer = new Timer();
+//            mCustomTimer.schedule(new TimerTask() {
+//                @Override
+//                public void run() {
+//                    if (mRecognizerView != null) {
+//                        mRecognizerView.pauseScanning();
+//                        handleTimeout();
+//                    }
+//                }
+//            }, 5000);
+//        }
     }
 
     @Override
@@ -369,18 +361,18 @@ public class MyScanActivity extends Activity implements ScanResultListener, Came
             setResult(RESULT_OK, resultIntent);
             finish();
         } else {
-            handleTimeout();
+//            handleTimeout();
         }
     }
 
-    private void handleTimeout() {
-        displayText(R.string.msg_timeout);
-        // timeout reached, reconfigure to using barcode + detector recognizer
-        // and then resume
-        mRecognizerBundle = new RecognizerBundle(createFallbackRecognizers());
-        mRecognizerView.reconfigureRecognizers(mRecognizerBundle);
-        mRecognizerView.resumeScanning(true);
-    }
+//    private void handleTimeout() {
+//        displayText(R.string.msg_timeout);
+//        // timeout reached, reconfigure to using barcode + detector recognizer
+//        // and then resume
+//        mRecognizerBundle = new RecognizerBundle(createFallbackRecognizers());
+//        mRecognizerView.reconfigureRecognizers(mRecognizerBundle);
+//        mRecognizerView.resumeScanning(true);
+//    }
 
     @Override
     public void onUnrecoverableError(@NonNull Throwable throwable) {

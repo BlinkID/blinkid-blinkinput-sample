@@ -1,7 +1,7 @@
 package com.microblink.blinkid.result.extract.blinkinput;
 
-import com.microblink.blinkid.entities.recognizers.Recognizer;
-import com.microblink.blinkid.entities.recognizers.blinkinput.documentcapture.DocumentCaptureRecognizer;
+import com.microblink.blinkinput.entities.recognizers.Recognizer;
+import com.microblink.blinkinput.entities.recognizers.blinkinput.documentcapture.DocumentCaptureRecognizer;
 import com.microblink.blinkid.libutils.R;
 import com.microblink.blinkid.result.extract.BaseResultExtractor;
 

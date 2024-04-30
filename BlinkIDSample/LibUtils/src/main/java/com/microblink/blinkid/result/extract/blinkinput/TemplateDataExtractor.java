@@ -2,14 +2,14 @@ package com.microblink.blinkid.result.extract.blinkinput;
 
 import android.content.Context;
 
-import com.microblink.blinkid.entities.parsers.Parser;
-import com.microblink.blinkid.entities.processors.Processor;
-import com.microblink.blinkid.entities.processors.imageReturn.ImageReturnProcessor;
-import com.microblink.blinkid.entities.processors.parserGroup.ParserGroupProcessor;
-import com.microblink.blinkid.entities.recognizers.templating.ProcessorGroup;
-import com.microblink.blinkid.entities.recognizers.templating.TemplatingClass;
-import com.microblink.blinkid.entities.recognizers.templating.TemplatingRecognizer;
-import com.microblink.blinkid.image.Image;
+import com.microblink.blinkinput.entities.parsers.Parser;
+import com.microblink.blinkinput.entities.processors.Processor;
+import com.microblink.blinkinput.entities.processors.imageReturn.ImageReturnProcessor;
+import com.microblink.blinkinput.entities.processors.parserGroup.ParserGroupProcessor;
+import com.microblink.blinkinput.entities.recognizers.templating.ProcessorGroup;
+import com.microblink.blinkinput.entities.recognizers.templating.TemplatingClass;
+import com.microblink.blinkinput.entities.recognizers.templating.TemplatingRecognizer;
+import com.microblink.blinkinput.image.Image;
 import com.microblink.blinkid.libutils.R;
 import com.microblink.blinkid.result.extract.RecognitionResultEntry;
 

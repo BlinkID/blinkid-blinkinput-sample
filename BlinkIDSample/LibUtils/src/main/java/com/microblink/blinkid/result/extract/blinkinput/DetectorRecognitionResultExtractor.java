@@ -1,6 +1,6 @@
 package com.microblink.blinkid.result.extract.blinkinput;
 
-import com.microblink.blinkid.entities.recognizers.detector.DetectorRecognizer;
+import com.microblink.blinkinput.entities.recognizers.detector.DetectorRecognizer;
 import com.microblink.blinkid.libutils.R;
 import com.microblink.blinkid.result.extract.BaseResultExtractor;
 

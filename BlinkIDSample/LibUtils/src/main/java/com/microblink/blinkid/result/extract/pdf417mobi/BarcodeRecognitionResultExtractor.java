@@ -1,6 +1,6 @@
 package com.microblink.blinkid.result.extract.pdf417mobi;
 
-import com.microblink.blinkid.entities.recognizers.blinkbarcode.barcode.BarcodeRecognizer;
+import com.microblink.blinkinput.entities.recognizers.blinkbarcode.barcode.BarcodeRecognizer;
 import com.microblink.blinkid.libutils.R;
 import com.microblink.blinkid.result.extract.BaseResultExtractor;
 
