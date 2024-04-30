@@ -18,9 +18,19 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 
+import com.microblink.blinkid.entities.detectors.quad.document.DocumentDetector;
+import com.microblink.blinkid.entities.detectors.quad.document.DocumentSpecification;
+import com.microblink.blinkid.entities.detectors.quad.document.DocumentSpecificationPreset;
+import com.microblink.blinkid.entities.processors.imageReturn.ImageReturnProcessor;
 import com.microblink.blinkid.entities.recognizers.Recognizer;
 import com.microblink.blinkid.entities.recognizers.RecognizerBundle;
+import com.microblink.blinkid.entities.recognizers.blinkbarcode.barcode.BarcodeRecognizer;
 import com.microblink.blinkid.entities.recognizers.blinkid.generic.BlinkIdSingleSideRecognizer;
+import com.microblink.blinkid.entities.recognizers.detector.DetectorRecognizer;
+import com.microblink.blinkid.entities.recognizers.templating.ProcessorGroup;
+import com.microblink.blinkid.entities.recognizers.templating.TemplatingClass;
+import com.microblink.blinkid.entities.recognizers.templating.dewarpPolicies.DPIBasedDewarpPolicy;
+import com.microblink.blinkid.geometry.Rectangle;
 import com.microblink.blinkid.hardware.SuccessCallback;
 import com.microblink.blinkid.hardware.orientation.Orientation;
 import com.microblink.blinkid.metadata.MetadataCallbacks;
@@ -41,14 +51,16 @@ import com.microblink.blinkid.view.viewfinder.quadview.QuadViewManager;
 import com.microblink.blinkid.view.viewfinder.quadview.QuadViewManagerFactory;
 import com.microblink.blinkid.view.viewfinder.quadview.QuadViewPreset;
 
+import java.util.Timer;
+import java.util.TimerTask;
+
 public class MyScanActivity extends Activity implements ScanResultListener, CameraEventsListener, OnSizeChangedListener {
 
     public static final String TAG = "MyScanActivity";
 
-    private int mScansDone = 0;
     private Handler mHandler = new Handler();
 
-    private RecognizerBundle recognizerBundle;
+    private RecognizerBundle mRecognizerBundle;
 
     /**
      * This is a RecognizerView - it contains camera view and can contain camera overlays
@@ -84,14 +96,17 @@ public class MyScanActivity extends Activity implements ScanResultListener, Came
      */
     private MediaPlayer mMediaPlayer = null;
 
+    private Timer mCustomTimer = null;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_my_scan);
         mRecognizerView = findViewById(R.id.recognizerView);
 
-        recognizerBundle = new RecognizerBundle(createRecognizers());
-        mRecognizerView.setRecognizerBundle(recognizerBundle);
+        mRecognizerBundle = new RecognizerBundle(createRecognizers());
+        mRecognizerBundle.setNumMsBeforeTimeout(5000); // 5 seconds timeout
+        mRecognizerView.setRecognizerBundle(mRecognizerBundle);
 
         // scan result listener will be notified when scan result gets available
         mRecognizerView.setScanResultListener(this);
@@ -205,6 +220,52 @@ public class MyScanActivity extends Activity implements ScanResultListener, Came
         return new Recognizer[]{genericRecognizer};
     }
 
+    private Recognizer[] createFallbackRecognizers() {
+        BarcodeRecognizer barcodeRecognizer = new BarcodeRecognizer();
+        barcodeRecognizer.setScanPdf417(true);
+        barcodeRecognizer.setScanQrCode(true);
+        barcodeRecognizer.setScanUncertain(true);
+
+        // detector recognizer
+        DocumentDetector idCardDetector = buildDocumentDetectorFromPreset(DocumentSpecificationPreset.DOCUMENT_SPECIFICATION_PRESET_ID1_CARD);
+        DetectorRecognizer detectorRecognizer = new DetectorRecognizer(idCardDetector);
+
+        // processor that will simply save obtained image
+        ImageReturnProcessor imageReturnProcessor = new ImageReturnProcessor();
+        // processor group that will be executed on the detected document location
+        ProcessorGroup processorGroup = new ProcessorGroup(
+                // process entire detected location
+                new Rectangle(0.f, 0.f, 1.f, 1.f),
+                // dewarp height will be calculated based on actual physical size of detected
+                // location and requested DPI
+                new DPIBasedDewarpPolicy(200),
+                // only image is needed
+                imageReturnProcessor
+        );
+
+        // Templating class is used to define how specific document type should be processed.
+        // Only image should be returned, which means that classification of the document
+        // based on the processed data is not needed, so only one document class is defined.
+        TemplatingClass documentClass = new TemplatingClass();
+        // prepared processor group is added to classification processor groups because
+        // they are executed before classification
+        documentClass.setClassificationProcessorGroups(processorGroup);
+        detectorRecognizer.setTemplatingClasses(documentClass);
+
+        return new Recognizer[]{barcodeRecognizer, detectorRecognizer};
+    }
+
+    private DocumentDetector buildDocumentDetectorFromPreset(DocumentSpecificationPreset documentSpecPreset) {
+        // create document specification from preset
+        DocumentSpecification documentSpec = DocumentSpecification.createFromPreset(documentSpecPreset);
+        // prepare document detector with defined document specification
+        DocumentDetector documentDetector = new DocumentDetector(documentSpec);
+        // set minimum number of stable detections to return detector result
+        documentDetector.setNumStableDetectionsThreshold(3);
+        return documentDetector;
+    }
+
+
     @Override
     protected void onResume() {
         super.onResume();
@@ -213,6 +274,20 @@ public class MyScanActivity extends Activity implements ScanResultListener, Came
             mRecognizerView.resume();
         }
         mMediaPlayer = MediaPlayer.create(this, R.raw.beep);
+
+        // start the timer
+        if (mCustomTimer == null) {
+            mCustomTimer = new Timer();
+            mCustomTimer.schedule(new TimerTask() {
+                @Override
+                public void run() {
+                    if (mRecognizerView != null) {
+                        mRecognizerView.pauseScanning();
+                        handleTimeout();
+                    }
+                }
+            }, 5000);
+        }
     }
 
     @Override
@@ -233,6 +308,10 @@ public class MyScanActivity extends Activity implements ScanResultListener, Came
         }
         if (mMediaPlayer != null) {
             mMediaPlayer = null;
+        }
+        if (mCustomTimer != null) {
+            mCustomTimer.cancel();
+            mCustomTimer = null;
         }
     }
 
@@ -282,24 +361,25 @@ public class MyScanActivity extends Activity implements ScanResultListener, Came
             }
         });
 
-        mScansDone++;
         mRecognizerView.pauseScanning();
-        if (mScansDone >= 3) {
-            // after 3 successful scans, show results
+
+        if (recognitionSuccessType == RecognitionSuccessType.SUCCESSFUL) {
             Intent resultIntent = new Intent();
-            recognizerBundle.saveToIntent(resultIntent);
+            mRecognizerBundle.saveToIntent(resultIntent);
             setResult(RESULT_OK, resultIntent);
             finish();
         } else {
-            Toast.makeText(this, "Scans done: " + mScansDone, Toast.LENGTH_SHORT).show();
-            // resume scanning after two seconds
-            mHandler.postDelayed(new Runnable() {
-                @Override
-                public void run() {
-                    mRecognizerView.resumeScanning(true);
-                }
-            }, 2000);
+            handleTimeout();
         }
+    }
+
+    private void handleTimeout() {
+        displayText(R.string.msg_timeout);
+        // timeout reached, reconfigure to using barcode + detector recognizer
+        // and then resume
+        mRecognizerBundle = new RecognizerBundle(createFallbackRecognizers());
+        mRecognizerView.reconfigureRecognizers(mRecognizerBundle);
+        mRecognizerView.resumeScanning(true);
     }
 
     @Override

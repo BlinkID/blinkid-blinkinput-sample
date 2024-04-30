@@ -27,6 +27,7 @@
     <string name="msg_processing">Please, hold your phone still, processing</string>
     <string name="msg_camera_too_far">Please position the phone closer to the slip</string>
     <string name="msg_partial_detected">Some parts of the payslip are not visible</string>
+    <string name="msg_timeout">Timeout reached, enabling detector+barcode fallback.</string>
 
 
 </resources>
