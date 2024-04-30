@@ -21,10 +21,11 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-project.txt'
         }
     }
-
-    lintOptions {
-          checkReleaseBuilds false
+    namespace 'com.microblink.blinkid'
+    lint {
+        checkReleaseBuilds false
     }
+
 }
 
 dependencies {

@@ -5,7 +5,6 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
-import android.content.res.Configuration;
 import android.graphics.Rect;
 import android.media.MediaPlayer;
 import android.os.Bundle;
@@ -17,17 +16,14 @@ import android.widget.ImageButton;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
+
 import com.microblink.blinkid.entities.recognizers.Recognizer;
 import com.microblink.blinkid.entities.recognizers.RecognizerBundle;
-import com.microblink.blinkid.entities.recognizers.blinkbarcode.usdl.UsdlRecognizer;
-import com.microblink.blinkid.entities.recognizers.blinkid.mrtd.MrtdRecognizer;
+import com.microblink.blinkid.entities.recognizers.blinkid.generic.BlinkIdSingleSideRecognizer;
 import com.microblink.blinkid.hardware.SuccessCallback;
 import com.microblink.blinkid.hardware.orientation.Orientation;
 import com.microblink.blinkid.metadata.MetadataCallbacks;
-import com.microblink.blinkid.metadata.detection.FailedDetectionCallback;
-import com.microblink.blinkid.metadata.detection.points.DisplayablePointsDetection;
-import com.microblink.blinkid.metadata.detection.points.PointsDetectionCallback;
-import com.microblink.blinkid.metadata.detection.points.PointsType;
 import com.microblink.blinkid.metadata.detection.quad.DisplayableQuadDetection;
 import com.microblink.blinkid.metadata.detection.quad.QuadDetectionCallback;
 import com.microblink.blinkid.recognition.RecognitionSuccessType;
@@ -35,21 +31,16 @@ import com.microblink.blinkid.util.CameraPermissionManager;
 import com.microblink.blinkid.util.Log;
 import com.microblink.blinkid.view.CameraAspectMode;
 import com.microblink.blinkid.view.CameraEventsListener;
-import com.microblink.blinkid.view.OnActivityFlipListener;
 import com.microblink.blinkid.view.OnSizeChangedListener;
 import com.microblink.blinkid.view.OrientationAllowedListener;
-import com.microblink.blinkid.view.ocrResult.OcrResultDotsView;
 import com.microblink.blinkid.view.recognition.DetectionStatus;
 import com.microblink.blinkid.view.recognition.RecognizerRunnerView;
 import com.microblink.blinkid.view.recognition.ScanResultListener;
-import com.microblink.blinkid.view.viewfinder.points.PointSetView;
 import com.microblink.blinkid.view.viewfinder.quadview.QuadViewManager;
 import com.microblink.blinkid.view.viewfinder.quadview.QuadViewManagerFactory;
 import com.microblink.blinkid.view.viewfinder.quadview.QuadViewPreset;
 
-import androidx.annotation.NonNull;
-
-public class MyScanActivity extends Activity implements ScanResultListener, CameraEventsListener, OnSizeChangedListener, OnActivityFlipListener {
+public class MyScanActivity extends Activity implements ScanResultListener, CameraEventsListener, OnSizeChangedListener {
 
     public static final String TAG = "MyScanActivity";
 
@@ -91,14 +82,6 @@ public class MyScanActivity extends Activity implements ScanResultListener, Came
      * MediaPlayer will be used for beep sound
      */
     private MediaPlayer mMediaPlayer = null;
-    /**
-     * MRZPointSetView is used for displaying dots when MRZ is detected
-     */
-    private PointSetView mMrzPointSetView;
-    /**
-     * mOcrView is used for displaying dots for OCR
-     */
-    private OcrResultDotsView mOcrView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -179,16 +162,6 @@ public class MyScanActivity extends Activity implements ScanResultListener, Came
         // add buttons and status view as rotatable view to BlinkIdView (it will be rotated even if activity remains in portrait/landscape)
         // allowed orientations are controlled via OrientationAllowedListener
         mRecognizerView.addChildView(view, true);
-
-        // add dots that appear when MRZ characters are detected
-        mMrzPointSetView = new PointSetView(this, null, mRecognizerView.getHostScreenOrientation(),
-                7, getResources().getColor(R.color.mb_mrz_point_color));
-        mRecognizerView.addChildView(mMrzPointSetView, false);
-
-        // add dots that appear when OCR characters are detected
-        mOcrView = new OcrResultDotsView(this, mRecognizerView.getHostScreenOrientation(), mRecognizerView.getInitialOrientation());
-        mRecognizerView.addOrientationChangeListener(mOcrView);
-        mRecognizerView.addChildView(mOcrView.getView(), false);
     }
 
     private void setupMetadataCallbacks() {
@@ -214,18 +187,13 @@ public class MyScanActivity extends Activity implements ScanResultListener, Came
             }
         });
 
-        metadataCallbacks.setPointsDetectionCallback(new PointsAndFailedDetectionCallback());
-
         mRecognizerView.setMetadataCallbacks(metadataCallbacks);
     }
 
     private Recognizer[] createRecognizers() {
-        MrtdRecognizer mrtdRecognizer = new MrtdRecognizer();
-        mrtdRecognizer.setReturnFullDocumentImage(true);
+        BlinkIdSingleSideRecognizer genericRecognizer = new BlinkIdSingleSideRecognizer();
 
-        UsdlRecognizer usdlRecognizer = new UsdlRecognizer();
-
-        return new Recognizer[]{mrtdRecognizer, usdlRecognizer};
+        return new Recognizer[]{genericRecognizer};
     }
 
     @Override
@@ -419,25 +387,11 @@ public class MyScanActivity extends Activity implements ScanResultListener, Came
     }
 
     @Override
-    public void onConfigurationChanged(Configuration newConfig) {
-        super.onConfigurationChanged(newConfig);
-
-        // important for drawing dots in the right direction
-        if (mOcrView != null) {
-            mOcrView.setHostActivityOrientation(mRecognizerView.getHostScreenOrientation());
-        }
-    }
-
-    @Override
     public void onAutofocusFailed() {
         // this method is called if camera cannot perform autofocus
         // this method is called from background (focusing) thread
         // so make sure you post UI actions on UI thread
         displayText(R.string.mb_autofocus_fail);
-
-        if (mOcrView != null) {
-            mOcrView.clearDisplayedContent();
-        }
     }
 
     @Override
@@ -495,41 +449,5 @@ public class MyScanActivity extends Activity implements ScanResultListener, Came
         // permission only if it has not been already granted.
         // on API level < 23, this method does nothing
         mCameraPermissionManager.askForCameraPermission();
-    }
-
-    @Override
-    public void onActivityFlip() {
-        // important for drawing dots in the right direction
-        if (mOcrView != null) {
-            mOcrView.setHostActivityOrientation(mRecognizerView.getHostScreenOrientation());
-        }
-    }
-
-    private class PointsAndFailedDetectionCallback implements PointsDetectionCallback, FailedDetectionCallback {
-
-        @Override
-        public void onPointsDetection(@NonNull DisplayablePointsDetection displayablePointsDetection) {
-            if (mMrzPointSetView != null) {
-                if (displayablePointsDetection.getPointsType() == PointsType.MRTD_DETECTION) {
-                    mMrzPointSetView.setDisplayablePointsDetection(displayablePointsDetection);
-                } else {
-                    mMrzPointSetView.clearDisplayedContent();
-                }
-            }
-
-            if (mOcrView != null) {
-                if (displayablePointsDetection.getPointsType() == PointsType.OCR_RESULT) {
-                    mOcrView.addDisplayablePointsDetection(displayablePointsDetection);
-                } else {
-                    mOcrView.clearDisplayedContent();
-                }
-            }
-        }
-
-        @Override
-        public void onDetectionFailed() {
-            mMrzPointSetView.clearDisplayedContent();
-            mOcrView.clearDisplayedContent();
-        }
     }
 }

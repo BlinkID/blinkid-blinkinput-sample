@@ -3,8 +3,6 @@ package com.microblink.blinkid.result.extract.blinkidcustom;
 import com.microblink.blinkid.entities.recognizers.blinkbarcode.usdl.UsdlRecognizer;
 import com.microblink.blinkid.entities.recognizers.blinkbarcode.vin.VinRecognizer;
 import com.microblink.blinkid.entities.recognizers.blinkcard.BlinkCardRecognizer;
-import com.microblink.blinkid.entities.recognizers.blinkcard.legacy.LegacyBlinkCardEliteRecognizer;
-import com.microblink.blinkid.entities.recognizers.blinkcard.legacy.LegacyBlinkCardRecognizer;
 import com.microblink.blinkid.entities.recognizers.blinkid.australia.AustraliaDlBackRecognizer;
 import com.microblink.blinkid.entities.recognizers.blinkid.australia.AustraliaDlFrontRecognizer;
 import com.microblink.blinkid.entities.recognizers.blinkid.austria.AustriaCombinedRecognizer;
@@ -99,8 +97,6 @@ import com.microblink.blinkid.entities.recognizers.blinkid.unitedArabEmirates.Un
 import com.microblink.blinkid.entities.recognizers.blinkid.usdl.UsdlCombinedRecognizer;
 import com.microblink.blinkid.entities.recognizers.blinkid.visa.VisaRecognizer;
 import com.microblink.blinkid.result.extract.blinkcard.BlinkCardRecognizerResultExtractor;
-import com.microblink.blinkid.result.extract.blinkcard.LegacyBlinkCardEliteRecognitionResultExtractor;
-import com.microblink.blinkid.result.extract.blinkcard.LegacyBlinkCardRecognitionResultExtractor;
 import com.microblink.blinkid.result.extract.blinkid.documentface.DocumentFaceRecognitionResultExtractor;
 import com.microblink.blinkid.result.extract.blinkid.generic.BlinkIdMultiSideRecognizerResultExtractor;
 import com.microblink.blinkid.result.extract.blinkid.generic.BlinkIdSingleSideRecognizerResultExtractor;
@@ -340,10 +336,6 @@ public class BlinkIdCustomResultExtractorFactory extends BlinkInputResultExtract
                 new MoroccoIdFrontRecognitionResultExtractor());
         add(BlinkCardRecognizer.class,
                 new BlinkCardRecognizerResultExtractor());
-        add(LegacyBlinkCardRecognizer.class,
-                new LegacyBlinkCardRecognitionResultExtractor());
-        add(LegacyBlinkCardEliteRecognizer.class,
-                new LegacyBlinkCardEliteRecognitionResultExtractor());
         add(NigeriaVoterIdBackRecognizer.class,
                 new NigeriaVoterIdBackRecognitionResultExtractor());
         add(NigeriaCombinedRecognizer.class,

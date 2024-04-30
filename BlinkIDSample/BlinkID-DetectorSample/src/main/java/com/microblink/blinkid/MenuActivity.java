@@ -8,7 +8,6 @@ import com.microblink.blinkid.entities.detectors.quad.QuadWithSizeDetector;
 import com.microblink.blinkid.entities.detectors.quad.document.DocumentDetector;
 import com.microblink.blinkid.entities.detectors.quad.document.DocumentSpecification;
 import com.microblink.blinkid.entities.detectors.quad.document.DocumentSpecificationPreset;
-import com.microblink.blinkid.entities.detectors.quad.mrtd.MRTDDetector;
 import com.microblink.blinkid.menu.BaseMenuActivity;
 import com.microblink.blinkid.menu.MenuListItem;
 import com.microblink.blinkid.util.RecognizerCompatibility;
@@ -50,17 +49,11 @@ public class MenuActivity extends BaseMenuActivity {
         DocumentDetector a4LandscapeDetector =
                 buildDocumentDetectorFromPreset(DocumentSpecificationPreset.DOCUMENT_SPECIFICATION_PRESET_A4_PORTRAIT);
 
-        // build T1 machine readable travel document detector from preset
-        MRTDDetector mrtdDetector = new MRTDDetector();
-        // it is possible to set specification(s) for the expected document(s)
-        // mrtdDetector.setSpecifications(MrtdSpecification.createFromPreset(MrtdSpecificationPreset.MRTD_SPECIFICATION_TD1));
-
         //create menu item for each detector
         items.add(buildMenuItem(R.string.id_detector, idCardDetector));
         items.add(buildMenuItem(R.string.cheque_detector, chequeDetector));
         items.add(buildMenuItem(R.string.a4_portrait_detector, a4PortraitDetector));
         items.add(buildMenuItem(R.string.a4_landscape_detector, a4LandscapeDetector));
-        items.add(buildMenuItem(R.string.mrtd_detector, mrtdDetector));
 
         return items;
     }
