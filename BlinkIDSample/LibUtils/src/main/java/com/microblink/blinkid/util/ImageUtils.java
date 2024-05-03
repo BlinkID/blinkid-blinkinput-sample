@@ -15,9 +15,9 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 
 import com.microblink.blinkid.MicroblinkSDK;
-import com.microblink.blinkid.hardware.orientation.Orientation;
-import com.microblink.blinkid.image.Image;
-import com.microblink.blinkid.image.highres.HighResImageWrapper;
+import com.microblink.blinkid.result.extract.adapters.HighResImageWrapper;
+import com.microblink.blinkid.result.extract.adapters.Image;
+import com.microblink.blinkid.result.extract.adapters.Orientation;
 
 import java.io.File;
 import java.io.FileNotFoundException;

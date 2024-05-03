@@ -20,6 +20,7 @@ import com.microblink.blinkid.entities.recognizers.HighResImagesBundle;
 import com.microblink.blinkid.image.Image;
 import com.microblink.blinkid.image.highres.HighResImageWrapper;
 import com.microblink.blinkid.libutils.R;
+import com.microblink.blinkid.result.extract.adapters.blinkid.BlinkIDHighResImageWrapper;
 import com.microblink.blinkid.util.ImageUtils;
 
 import androidx.annotation.NonNull;
@@ -180,7 +181,7 @@ public abstract class BaseResultActivity extends AppCompatActivity {
         for(HighResImageWrapper image : highResImagesBundle.getImages()) {
             String currentTime = String.valueOf(System.currentTimeMillis());
             String imageName = currentTime + ".jpeg";
-            ImageUtils.storeHighResImage(this.getApplicationContext(), imageName, image);
+            ImageUtils.storeHighResImage(this.getApplicationContext(), imageName, new BlinkIDHighResImageWrapper(image));
         }
     }
 

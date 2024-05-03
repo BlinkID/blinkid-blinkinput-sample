@@ -1,12 +1,16 @@
 package com.microblink.blinkid.result.extract.pdf417mobi;
 
+import com.microblink.blinkid.result.extract.adapters.blinkinput.BlinkInputRecognizer;
 import com.microblink.blinkinput.entities.recognizers.blinkbarcode.barcode.BarcodeRecognizer;
 import com.microblink.blinkid.libutils.R;
 import com.microblink.blinkid.result.extract.BaseResultExtractor;
 
 import java.util.Arrays;
 
-public class BarcodeRecognitionResultExtractor extends BaseResultExtractor<BarcodeRecognizer.Result, BarcodeRecognizer> {
+public class BarcodeRecognitionResultExtractor extends BaseResultExtractor<
+        BarcodeRecognizer.Result,
+        BarcodeRecognizer,
+        BlinkInputRecognizer<BarcodeRecognizer.Result, BarcodeRecognizer>> {
 
     @Override
     protected void extractData(BarcodeRecognizer.Result result) {

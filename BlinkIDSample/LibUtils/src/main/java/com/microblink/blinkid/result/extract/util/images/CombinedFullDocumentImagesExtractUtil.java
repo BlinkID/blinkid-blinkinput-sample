@@ -5,6 +5,7 @@ import com.microblink.blinkid.entities.recognizers.blinkid.imageresult.CombinedF
 import com.microblink.blinkid.entities.recognizers.blinkid.imageresult.EncodedCombinedFullDocumentImageResult;
 import com.microblink.blinkid.libutils.R;
 import com.microblink.blinkid.result.extract.RecognitionResultEntry;
+import com.microblink.blinkid.result.extract.adapters.blinkid.BlinkIDImage;
 
 import java.util.List;
 
@@ -16,8 +17,8 @@ public class CombinedFullDocumentImagesExtractUtil {
 
         if(result instanceof CombinedFullDocumentImageResult) {
             CombinedFullDocumentImageResult combinedFullDocumentImageResult = (CombinedFullDocumentImageResult) result;
-            extractedData.add(builder.build(R.string.MBFullDocumentImageFront, combinedFullDocumentImageResult.getFullDocumentFrontImage()));
-            extractedData.add(builder.build(R.string.MBFullDocumentImageBack, combinedFullDocumentImageResult.getFullDocumentBackImage()));
+            extractedData.add(builder.build(R.string.MBFullDocumentImageFront, new BlinkIDImage(combinedFullDocumentImageResult.getFullDocumentFrontImage())));
+            extractedData.add(builder.build(R.string.MBFullDocumentImageBack, new BlinkIDImage(combinedFullDocumentImageResult.getFullDocumentBackImage())));
         }
 
         if (result instanceof EncodedCombinedFullDocumentImageResult) {

@@ -11,7 +11,7 @@ import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.Toast;
 
-import com.microblink.blinkid.entities.recognizers.Recognizer;
+import com.microblink.blinkid.result.extract.adapters.Recognizer;
 import com.microblink.blinkid.result.ResultSource;
 import com.microblink.blinkid.result.extract.BaseResultExtractor;
 import com.microblink.blinkid.result.extract.RecognitionResultEntry;
@@ -71,7 +71,7 @@ public class ResultFragment extends BaseResultFragment {
     @Override
     protected List<RecognitionResultEntry> createResultEntries(Context context) {
         // this must be called after the activity has been created
-        Recognizer<Recognizer.Result> recognizer =
+        Recognizer recognizer =
                 ((ResultFragmentActivity) getActivity()).getRecognizerAtPosition(
                         mRecognizerPosition);
 
@@ -113,6 +113,6 @@ public class ResultFragment extends BaseResultFragment {
      * Interface which must be implemented by all activities that use {@link ResultFragment}.
      */
     public interface ResultFragmentActivity {
-        Recognizer<Recognizer.Result > getRecognizerAtPosition(int resultPosition);
+        Recognizer getRecognizerAtPosition(int resultPosition);
     }
 }

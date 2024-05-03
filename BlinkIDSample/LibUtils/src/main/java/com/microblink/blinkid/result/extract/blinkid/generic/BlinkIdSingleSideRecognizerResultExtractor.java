@@ -21,6 +21,9 @@ import com.microblink.blinkid.entities.recognizers.blinkid.mrtd.MrzResult;
 import com.microblink.blinkid.libutils.R;
 import com.microblink.blinkid.result.ResultSource;
 import com.microblink.blinkid.result.extract.RecognitionResultEntry;
+import com.microblink.blinkid.result.extract.adapters.blinkid.BlinkIDDate;
+import com.microblink.blinkid.result.extract.adapters.blinkid.BlinkIDImage;
+import com.microblink.blinkid.result.extract.adapters.blinkid.BlinkIDRecognizer;
 import com.microblink.blinkid.result.extract.blinkid.BlinkIdExtractor;
 import com.microblink.blinkid.util.ImageUtils;
 
@@ -43,14 +46,17 @@ public class BlinkIdSingleSideRecognizerResultExtractor extends BlinkIdExtractor
     }
 
     @Override
-    public List<RecognitionResultEntry> extractData(Context context, BlinkIdSingleSideRecognizer recognizer, ResultSource resultSource) {
+    public List<RecognitionResultEntry> extractData(
+            Context context,
+            BlinkIDRecognizer<BlinkIdSingleSideRecognizer.Result, BlinkIdSingleSideRecognizer> recognizer,
+            ResultSource resultSource) {
         mContext = context;
         mBuilder = new RecognitionResultEntry.Builder(context);
         mExtractedData = new ArrayList<>();
         mRecognizer = recognizer;
 
         BlinkIdSingleSideRecognizer.Result result = recognizer.getResult();
-        String jsonResult = recognizer.toSignedJson().getPayload();
+        String jsonResult = recognizer.getRecognizer().toSignedJson().getPayload();
         try {
             JSONObject json = new JSONObject(jsonResult);
             jsonResult = json.toString(4);
@@ -99,7 +105,7 @@ public class BlinkIdSingleSideRecognizerResultExtractor extends BlinkIdExtractor
         List<StringResult> stringResults = getAllStringResultsFromVizResult(result.getVizResult());
 
         if(result.getFullDocumentImage() != null){
-            Bitmap image = ImageUtils.transformImage(result.getFullDocumentImage());
+            Bitmap image = ImageUtils.transformImage(new BlinkIDImage(result.getFullDocumentImage()));
             Bitmap bmOverlay = Bitmap.createBitmap(image.getWidth(), image.getHeight(), image.getConfig()); ;
             Canvas canvas = new Canvas(bmOverlay);
             Paint paint = new Paint();
@@ -191,8 +197,8 @@ public class BlinkIdSingleSideRecognizerResultExtractor extends BlinkIdExtractor
 
         add(R.string.MBAdditionalProcessingInfo, result.getAdditionalProcessingInfo().toString());
 
-        add(R.string.MBCameraFrame, result.getCameraFrame());
-        add(R.string.MBBarcodeCameraFrame, result.getBarcodeCameraFrame());
+        add(R.string.MBCameraFrame, new BlinkIDImage(result.getCameraFrame()));
+        add(R.string.MBBarcodeCameraFrame, new BlinkIDImage(result.getBarcodeCameraFrame()));
     }
 
     private void extractMixedNonEmptyResults(BlinkIdSingleSideRecognizer.Result result, String jsonResult) {
@@ -271,8 +277,8 @@ public class BlinkIdSingleSideRecognizerResultExtractor extends BlinkIdExtractor
 
         addIfNotEmpty(R.string.MBAdditionalProcessingInfo, result.getAdditionalProcessingInfo().toString());
 
-        add(R.string.MBCameraFrame, result.getCameraFrame());
-        add(R.string.MBBarcodeCameraFrame, result.getBarcodeCameraFrame());
+        add(R.string.MBCameraFrame, new BlinkIDImage(result.getCameraFrame()));
+        add(R.string.MBBarcodeCameraFrame, new BlinkIDImage(result.getBarcodeCameraFrame()));
         add(R.string.MBJsonResult, jsonResult);
     }
 
@@ -336,10 +342,10 @@ public class BlinkIdSingleSideRecognizerResultExtractor extends BlinkIdExtractor
         addIfNotEmpty(R.string.PPStreet, result.getStreet());
         addIfNotEmpty(R.string.PPPostalCode, result.getPostalCode());
         addIfNotEmpty(R.string.PPJurisdiction, result.getJurisdiction());
-        addIfNotEmpty(R.string.PPDateOfBirth, result.getDateOfBirth());
+        addIfNotEmpty(R.string.PPDateOfBirth, new BlinkIDDate(result.getDateOfBirth()));
 
-        addIfNotEmpty(R.string.PPIssueDate, result.getDateOfIssue());
-        addIfNotEmpty(R.string.PPDateOfExpiry, result.getDateOfExpiry());
+        addIfNotEmpty(R.string.PPIssueDate, new BlinkIDDate(result.getDateOfIssue()));
+        addIfNotEmpty(R.string.PPDateOfExpiry, new BlinkIDDate(result.getDateOfExpiry()));
 
         addIfNotEmpty(R.string.PPPlaceOfBirth, result.getPlaceOfBirth());
         addIfNotEmpty(R.string.PPNationality, result.getNationality());

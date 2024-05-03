@@ -21,6 +21,9 @@ import com.microblink.blinkid.entities.recognizers.blinkid.mrtd.MrzResult;
 import com.microblink.blinkid.libutils.R;
 import com.microblink.blinkid.result.ResultSource;
 import com.microblink.blinkid.result.extract.RecognitionResultEntry;
+import com.microblink.blinkid.result.extract.adapters.blinkid.BlinkIDDate;
+import com.microblink.blinkid.result.extract.adapters.blinkid.BlinkIDImage;
+import com.microblink.blinkid.result.extract.adapters.blinkid.BlinkIDRecognizer;
 import com.microblink.blinkid.result.extract.blinkid.BlinkIdExtractor;
 import com.microblink.blinkid.util.ImageUtils;
 
@@ -43,14 +46,17 @@ public class BlinkIdMultiSideRecognizerResultExtractor extends BlinkIdExtractor<
     }
 
     @Override
-    public List<RecognitionResultEntry> extractData(Context context, BlinkIdMultiSideRecognizer recognizer, ResultSource resultSource) {
+    public List<RecognitionResultEntry> extractData(
+            Context context,
+            BlinkIDRecognizer<BlinkIdMultiSideRecognizer.Result, BlinkIdMultiSideRecognizer> recognizer,
+            ResultSource resultSource) {
         mContext = context;
         mBuilder = new RecognitionResultEntry.Builder(context);
         mExtractedData = new ArrayList<>();
         mRecognizer = recognizer;
 
         BlinkIdMultiSideRecognizer.Result result = recognizer.getResult();
-        String jsonResult = recognizer.toSignedJson().getPayload();
+        String jsonResult = recognizer.getRecognizer().toSignedJson().getPayload();
         try {
             JSONObject json = new JSONObject(jsonResult);
             jsonResult = json.toString(4);
@@ -103,7 +109,7 @@ public class BlinkIdMultiSideRecognizerResultExtractor extends BlinkIdExtractor<
         paint.setStrokeWidth(2f);
 
         if(result.getFullDocumentFrontImage() != null){
-            Bitmap image = ImageUtils.transformImage(result.getFullDocumentFrontImage());
+            Bitmap image = ImageUtils.transformImage(new BlinkIDImage(result.getFullDocumentFrontImage()));
             Bitmap bmOverlay = Bitmap.createBitmap(image.getWidth(), image.getHeight(), image.getConfig()); ;
             Canvas canvas = new Canvas(bmOverlay);
             canvas.drawBitmap(image, new Matrix(), null);
@@ -118,7 +124,7 @@ public class BlinkIdMultiSideRecognizerResultExtractor extends BlinkIdExtractor<
         List<StringResult> backStringResults = getAllStringResultsFromVizResult(result.getBackVizResult());
 
         if(result.getFullDocumentBackImage() != null){
-            Bitmap image = ImageUtils.transformImage(result.getFullDocumentBackImage());
+            Bitmap image = ImageUtils.transformImage(new BlinkIDImage(result.getFullDocumentBackImage()));
             Bitmap bmOverlay = Bitmap.createBitmap(image.getWidth(), image.getHeight(), image.getConfig()); ;
             Canvas canvas = new Canvas(bmOverlay);
             canvas.drawBitmap(image, new Matrix(), null);
@@ -221,9 +227,9 @@ public class BlinkIdMultiSideRecognizerResultExtractor extends BlinkIdExtractor<
 
         add(R.string.PPDataMatch, result.getDataMatch().toString());
 
-        add(R.string.MBFrontCameraFrame, result.getFrontCameraFrame());
-        add(R.string.MBBackCameraFrame, result.getBackCameraFrame());
-        add(R.string.MBBarcodeCameraFrame, result.getBarcodeCameraFrame());
+        add(R.string.MBFrontCameraFrame, new BlinkIDImage(result.getFrontCameraFrame()));
+        add(R.string.MBBackCameraFrame, new BlinkIDImage(result.getBackCameraFrame()));
+        add(R.string.MBBarcodeCameraFrame, new BlinkIDImage(result.getBarcodeCameraFrame()));
     }
 
     private void extractMixedNonEmptyResults(BlinkIdMultiSideRecognizer.Result result, String jsonResult) {
@@ -316,9 +322,9 @@ public class BlinkIdMultiSideRecognizerResultExtractor extends BlinkIdExtractor<
 
         addIfNotEmpty(R.string.PPDataMatch, result.getDataMatch().toString());
 
-        add(R.string.MBFrontCameraFrame, result.getFrontCameraFrame());
-        add(R.string.MBBackCameraFrame, result.getBackCameraFrame());
-        add(R.string.MBBarcodeCameraFrame, result.getBarcodeCameraFrame());
+        add(R.string.MBFrontCameraFrame, new BlinkIDImage(result.getFrontCameraFrame()));
+        add(R.string.MBBackCameraFrame, new BlinkIDImage(result.getBackCameraFrame()));
+        add(R.string.MBBarcodeCameraFrame, new BlinkIDImage(result.getBarcodeCameraFrame()));
         add(R.string.MBJsonResult, jsonResult);
     }
 
@@ -383,10 +389,10 @@ public class BlinkIdMultiSideRecognizerResultExtractor extends BlinkIdExtractor<
         addIfNotEmpty(R.string.PPStreet, result.getStreet());
         addIfNotEmpty(R.string.PPPostalCode, result.getPostalCode());
         addIfNotEmpty(R.string.PPJurisdiction, result.getJurisdiction());
-        addIfNotEmpty(R.string.PPDateOfBirth, result.getDateOfBirth());
+        addIfNotEmpty(R.string.PPDateOfBirth, new BlinkIDDate(result.getDateOfBirth()));
 
-        addIfNotEmpty(R.string.PPIssueDate, result.getDateOfIssue());
-        addIfNotEmpty(R.string.PPDateOfExpiry, result.getDateOfExpiry());
+        addIfNotEmpty(R.string.PPIssueDate, new BlinkIDDate(result.getDateOfIssue()));
+        addIfNotEmpty(R.string.PPDateOfExpiry, new BlinkIDDate(result.getDateOfExpiry()));
 
         addIfNotEmpty(R.string.PPPlaceOfBirth, result.getPlaceOfBirth());
         addIfNotEmpty(R.string.PPNationality, result.getNationality());

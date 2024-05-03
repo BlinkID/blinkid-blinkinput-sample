@@ -9,9 +9,10 @@ import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentPagerAdapter;
 
-import com.microblink.blinkid.entities.recognizers.Recognizer;
-import com.microblink.blinkid.entities.recognizers.RecognizerBundle;
 import com.microblink.blinkid.result.activity.fragment.ResultFragment;
+import com.microblink.blinkid.result.extract.adapters.Recognizer;
+import com.microblink.blinkid.result.extract.adapters.blinkid.BlinkIDRecognizer;
+import com.microblink.blinkid.result.extract.adapters.blinkinput.BlinkInputRecognizer;
 import com.microblink.blinkid.util.ResultUtils;
 
 import java.util.ArrayList;
@@ -22,8 +23,9 @@ public class RecognizerBundleResultActivity extends BaseResultActivity implement
 
     private static final String SHOULD_SHOW_RESULT_DIALOG_EXTRA = "SHOULD_SHOW_RESULT_DIALOG_EXTRA";
 
-    protected RecognizerBundle mRecognizerBundle;
-    private List<Recognizer> mRecognizersWithResult;
+    protected com.microblink.blinkid.entities.recognizers.RecognizerBundle mBlinkIdRecognizerBundle;
+    protected com.microblink.blinkinput.entities.recognizers.RecognizerBundle mBlinkInputRecognizerBundle;
+    private List<Recognizer<?, ?>> mRecognizersWithResult;
 
     public static void putShouldShowResultDialogExtra(Intent data, boolean shouldShowResultDialog) {
         data.putExtra(SHOULD_SHOW_RESULT_DIALOG_EXTRA, shouldShowResultDialog);
@@ -39,8 +41,8 @@ public class RecognizerBundleResultActivity extends BaseResultActivity implement
         super.onResume();
         // clear saved state to be sure that data is cleared from cache and from file when
         // intent optimisation is used
-        if (mRecognizerBundle != null) {
-            mRecognizerBundle.clearSavedState();
+        if (mBlinkIdRecognizerBundle != null) {
+            mBlinkIdRecognizerBundle.clearSavedState();
         }
     }
 
@@ -51,20 +53,42 @@ public class RecognizerBundleResultActivity extends BaseResultActivity implement
         return new RecognizerListFragmentAdapter(getSupportFragmentManager());
     }
 
-    protected List<Recognizer> obtainRecognizersWithResult(Intent intent) {
+    protected List<Recognizer<?, ?>> obtainRecognizersWithResult(Intent intent) {
         StringBuilder resultDialogMessageBuilder = new StringBuilder();
 
-        List<Recognizer> recognizersWithResult = new ArrayList<>();
-        mRecognizerBundle = new RecognizerBundle();
-        mRecognizerBundle.loadFromIntent(intent);
-        for ( Recognizer<Recognizer.Result> r : mRecognizerBundle.getRecognizers() ) {
-            if ( r.getResult().getResultState() != Recognizer.Result.State.Empty ) {
-                recognizersWithResult.add( r );
-            }
+        List<Recognizer<?, ?>> recognizersWithResult = new ArrayList<>();
+        try {
+            mBlinkIdRecognizerBundle = new com.microblink.blinkid.entities.recognizers.RecognizerBundle();
+            mBlinkIdRecognizerBundle.loadFromIntent(intent);
 
-            resultDialogMessageBuilder.append(String.format("%s: %s\n",
-                    r.getName(),
-                    r.getResult().getResultState().name()));
+            for (com.microblink.blinkid.entities.recognizers.Recognizer<com.microblink.blinkid.entities.recognizers.Recognizer.Result> r : mBlinkIdRecognizerBundle.getRecognizers()) {
+                if (r.getResult().getResultState() != com.microblink.blinkid.entities.recognizers.Recognizer.Result.State.Empty) {
+                    recognizersWithResult.add(new BlinkIDRecognizer<>(r));
+                }
+
+                resultDialogMessageBuilder.append(String.format("%s: %s\n",
+                        r.getName(),
+                        r.getResult().getResultState().name()));
+            }
+        } catch (IllegalStateException exc) {
+            // ignore - BlinkID results not existing
+        }
+
+        try {
+            mBlinkInputRecognizerBundle = new com.microblink.blinkinput.entities.recognizers.RecognizerBundle();
+            mBlinkInputRecognizerBundle.loadFromIntent(intent);
+
+            for (com.microblink.blinkinput.entities.recognizers.Recognizer<com.microblink.blinkinput.entities.recognizers.Recognizer.Result> r : mBlinkInputRecognizerBundle.getRecognizers()) {
+                if (r.getResult().getResultState() != com.microblink.blinkinput.entities.recognizers.Recognizer.Result.State.Empty) {
+                    recognizersWithResult.add(new BlinkInputRecognizer<>(r));
+                }
+
+                resultDialogMessageBuilder.append(String.format("%s: %s\n",
+                        r.getName(),
+                        r.getResult().getResultState().name()));
+            }
+        } catch (IllegalStateException exc) {
+            // ignore = BlinkInput results not existing
         }
 
         showResultDialogIfEligible(resultDialogMessageBuilder.toString());
@@ -89,14 +113,14 @@ public class RecognizerBundleResultActivity extends BaseResultActivity implement
     @Override
     protected void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
-        if (mRecognizerBundle != null) {
-            mRecognizerBundle.saveState();
+        if (mBlinkIdRecognizerBundle != null) {
+            mBlinkIdRecognizerBundle.saveState();
 
         }
     }
 
     @Override
-    public Recognizer<Recognizer.Result > getRecognizerAtPosition(int resultPosition) {
+    public Recognizer getRecognizerAtPosition(int resultPosition) {
         if (resultPosition < 0 || resultPosition >= mRecognizersWithResult.size()) {
             throw new IllegalStateException("Recognizer with non empty result on requested position"
                     + " does not exist. Possible cause is that recognizer bundle state has been lost"

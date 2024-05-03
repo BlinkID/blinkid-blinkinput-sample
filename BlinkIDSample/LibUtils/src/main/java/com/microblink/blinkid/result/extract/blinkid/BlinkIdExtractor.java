@@ -34,6 +34,9 @@ import com.microblink.blinkid.entities.recognizers.blinkid.mrtd.MrzResult;
 import com.microblink.blinkid.libutils.R;
 import com.microblink.blinkid.result.extract.BaseResultExtractor;
 import com.microblink.blinkid.result.extract.RecognitionResultEntry;
+import com.microblink.blinkid.result.extract.adapters.blinkid.BlinkIDImage;
+import com.microblink.blinkid.result.extract.adapters.blinkid.BlinkIDRecognizer;
+import com.microblink.blinkid.result.extract.adapters.blinkid.BlinkIDSimpleDate;
 import com.microblink.blinkid.result.extract.util.images.CombinedFullDocumentImagesExtractUtil;
 import com.microblink.blinkid.results.date.SimpleDate;
 import com.microblink.blinkid.util.Log;
@@ -44,7 +47,10 @@ import org.json.JSONObject;
 import java.util.ArrayList;
 import java.util.List;
 
-public abstract class BlinkIdExtractor<ResultType extends Recognizer.Result, RecognizerType extends Recognizer<ResultType>> extends BaseResultExtractor<ResultType, RecognizerType> {
+public abstract class BlinkIdExtractor<
+        ResultType extends Recognizer.Result,
+        RecognizerType extends Recognizer<ResultType>
+        > extends BaseResultExtractor<ResultType, RecognizerType, BlinkIDRecognizer<ResultType, RecognizerType>> {
 
     @Override
     protected void onDataExtractionDone(ResultType result) {
@@ -60,7 +66,7 @@ public abstract class BlinkIdExtractor<ResultType extends Recognizer.Result, Rec
         add(R.string.PPMRZVerified, mrzResult.isMrzVerified());
         add(R.string.PPPrimaryId, mrzResult.getPrimaryId());
         add(R.string.PPSecondaryId, mrzResult.getSecondaryId());
-        add(R.string.PPDateOfBirth, mrzResult.getDateOfBirth().getDate(), mrzResult.getDateOfBirth().isFilledByDomainKnowledge());
+        add(R.string.PPDateOfBirth, new BlinkIDSimpleDate(mrzResult.getDateOfBirth().getDate()), mrzResult.getDateOfBirth().isFilledByDomainKnowledge());
         int age = mrzResult.getAge();
         if (age != -1) {
             add(R.string.PPAge, age);
@@ -71,7 +77,7 @@ public abstract class BlinkIdExtractor<ResultType extends Recognizer.Result, Rec
         add(R.string.PPDocumentCode, mrzResult.getSanitizedDocumentCode());
         add(R.string.PPIssuerCode, mrzResult.getSanitizedIssuer());
         add(R.string.PPIssuer, mrzResult.getIssuerName());
-        add(R.string.PPDateOfExpiry, mrzResult.getDateOfExpiry().getDate(), mrzResult.getDateOfExpiry().isFilledByDomainKnowledge());
+        add(R.string.PPDateOfExpiry, new BlinkIDSimpleDate(mrzResult.getDateOfExpiry().getDate()), mrzResult.getDateOfExpiry().isFilledByDomainKnowledge());
         add(R.string.PPOpt2, mrzResult.getSanitizedOpt2());
         add(R.string.PPMRZText, mrzResult.getMrzText());
 
@@ -89,7 +95,7 @@ public abstract class BlinkIdExtractor<ResultType extends Recognizer.Result, Rec
                                      List<RecognitionResultEntry> extractedData,
                                      RecognitionResultEntry.Builder builder) {
         if (result instanceof FaceImageResult) {
-            extractedData.add(builder.build(R.string.MBFaceImage, ((FaceImageResult) result).getFaceImage()));
+            extractedData.add(builder.build(R.string.MBFaceImage, new BlinkIDImage(((FaceImageResult) result).getFaceImage())));
         }
 
         if (result instanceof EncodedFaceImageResult) {
@@ -100,7 +106,7 @@ public abstract class BlinkIdExtractor<ResultType extends Recognizer.Result, Rec
         }
 
         if (result instanceof FullDocumentImageResult) {
-            extractedData.add(builder.build(R.string.MBFullDocumentImage, ((FullDocumentImageResult) result).getFullDocumentImage()));
+            extractedData.add(builder.build(R.string.MBFullDocumentImage, new BlinkIDImage(((FullDocumentImageResult) result).getFullDocumentImage())));
         }
 
         if (result instanceof EncodedFullDocumentImageResult) {
@@ -113,7 +119,7 @@ public abstract class BlinkIdExtractor<ResultType extends Recognizer.Result, Rec
         CombinedFullDocumentImagesExtractUtil.extractCombinedFullDocumentImages(result, extractedData, builder);
 
         if (result instanceof SignatureImageResult) {
-            extractedData.add(builder.build(R.string.MBSignatureImage, ((SignatureImageResult) result).getSignatureImage()));
+            extractedData.add(builder.build(R.string.MBSignatureImage, new BlinkIDImage(((SignatureImageResult) result).getSignatureImage())));
         }
 
         if (result instanceof EncodedSignatureImageResult) {
@@ -184,14 +190,14 @@ public abstract class BlinkIdExtractor<ResultType extends Recognizer.Result, Rec
         if (dateResult == null) return;
         SimpleDate date = dateResult.getDate();
         if (date != null) {
-            add(key, date, dateResult.isFilledByDomainKnowledge());
+            add(key, new BlinkIDSimpleDate(date), dateResult.isFilledByDomainKnowledge());
         } else {
             addIfNotEmpty(key, dateResult.getOriginalDateString());
         }
     }
 
     protected void add(int key, DateResult date) {
-        mExtractedData.add(mBuilder.build(key, date != null ? date.getDate() : null, date != null ? date.isFilledByDomainKnowledge() : false));
+        mExtractedData.add(mBuilder.build(key, date != null ? new BlinkIDSimpleDate(date.getDate()) : null, date != null && date.isFilledByDomainKnowledge()));
     }
 
     protected void extractLocationsResultsFromVizResult(VizResult result) {

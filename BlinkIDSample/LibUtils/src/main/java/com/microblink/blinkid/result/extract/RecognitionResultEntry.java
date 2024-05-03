@@ -8,10 +8,10 @@ import androidx.annotation.Nullable;
 import androidx.annotation.StringRes;
 import android.text.TextUtils;
 
-import com.microblink.blinkid.image.Image;
 import com.microblink.blinkid.libutils.R;
-import com.microblink.blinkid.results.date.Date;
-import com.microblink.blinkid.results.date.SimpleDate;
+import com.microblink.blinkid.result.extract.adapters.Date;
+import com.microblink.blinkid.result.extract.adapters.Image;
+import com.microblink.blinkid.result.extract.adapters.SimpleDate;
 import com.microblink.blinkid.util.ImageUtils;
 
 import java.text.SimpleDateFormat;

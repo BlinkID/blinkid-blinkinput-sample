@@ -1,25 +1,25 @@
 package com.microblink.blinkid.result.extract;
 
+import com.microblink.blinkid.result.ResultSource;
+import com.microblink.blinkid.result.extract.adapters.Date;
+import com.microblink.blinkid.result.extract.adapters.Image;
+import com.microblink.blinkid.result.extract.adapters.Recognizer;
+import com.microblink.blinkid.result.extract.adapters.SimpleDate;
+
 import android.content.Context;
 import android.graphics.Bitmap;
-
-import com.microblink.blinkid.entities.recognizers.Recognizer;
-import com.microblink.blinkid.image.Image;
-import com.microblink.blinkid.result.ResultSource;
-import com.microblink.blinkid.results.date.Date;
-import com.microblink.blinkid.results.date.SimpleDate;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public abstract class BaseResultExtractor<ResultType extends Recognizer.Result, RecognizerType extends Recognizer<ResultType>> {
+public abstract class BaseResultExtractor<ResultType, RecognizerType, AdapterRecognizerType extends Recognizer<ResultType, RecognizerType>> {
 
     protected RecognitionResultEntry.Builder mBuilder;
     protected List<RecognitionResultEntry> mExtractedData;
-    protected RecognizerType mRecognizer;
+    protected AdapterRecognizerType mRecognizer;
     protected Context mContext;
 
-    public List<RecognitionResultEntry> extractData(Context context, RecognizerType recognizer, ResultSource resultSource) {
+    public List<RecognitionResultEntry> extractData(Context context, AdapterRecognizerType recognizer, ResultSource resultSource) {
         mContext = context;
         mBuilder = new RecognitionResultEntry.Builder(context);
         mExtractedData = new ArrayList<>();
@@ -66,7 +66,7 @@ public abstract class BaseResultExtractor<ResultType extends Recognizer.Result, 
     }
 
     protected void add(int key, Date date) {
-        mExtractedData.add(mBuilder.build(key, date != null ? date.getDate() : null, date.isFilledByDomainKnowledge()));
+        mExtractedData.add(mBuilder.build(key, date != null ? date.getDate() : null, date != null && date.isFilledByDomainKnowledge()));
     }
 
     protected void addIfNotEmpty(int key, Date dateResult) {

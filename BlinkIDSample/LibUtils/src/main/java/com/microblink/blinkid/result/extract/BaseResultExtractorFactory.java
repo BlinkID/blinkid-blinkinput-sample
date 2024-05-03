@@ -1,6 +1,6 @@
 package com.microblink.blinkid.result.extract;
 
-import com.microblink.blinkid.entities.recognizers.Recognizer;
+import com.microblink.blinkid.result.extract.adapters.Recognizer;
 import com.microblink.blinkid.entities.recognizers.successframe.SuccessFrameGrabberRecognizer;
 
 import java.util.HashMap;
@@ -8,7 +8,7 @@ import java.util.Map;
 
 public abstract class BaseResultExtractorFactory {
 
-    private Map<String, BaseResultExtractor> extractorMap = new HashMap<>();
+    private final Map<String, BaseResultExtractor> extractorMap = new HashMap<>();
 
     public BaseResultExtractor createExtractor(Recognizer recognizer) {
         if (extractorMap.isEmpty()) {
@@ -18,7 +18,7 @@ public abstract class BaseResultExtractorFactory {
             addExtractors();
         }
 
-        String key = recognizer.getClass().getName();
+        String key = recognizer.getRecognizer().getClass().getName();
         if (extractorMap.containsKey(key)) {
             return extractorMap.get(key);
         } else {
