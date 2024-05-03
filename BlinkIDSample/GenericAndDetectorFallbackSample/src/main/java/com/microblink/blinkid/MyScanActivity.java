@@ -5,10 +5,12 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.graphics.Bitmap;
 import android.graphics.Rect;
 import android.media.MediaPlayer;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.Parcel;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
@@ -17,14 +19,16 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
-import com.microblink.blinkid.entities.processors.imageReturn.ImageReturnProcessor;
 import com.microblink.blinkid.entities.recognizers.Recognizer;
 import com.microblink.blinkid.entities.recognizers.RecognizerBundle;
 import com.microblink.blinkid.entities.recognizers.blinkid.generic.BlinkIdSingleSideRecognizer;
-import com.microblink.blinkid.geometry.Rectangle;
+import com.microblink.blinkid.entities.recognizers.framegrabber.FrameCallback;
+import com.microblink.blinkid.entities.recognizers.framegrabber.FrameGrabberRecognizer;
 import com.microblink.blinkid.hardware.SuccessCallback;
 import com.microblink.blinkid.hardware.orientation.Orientation;
+import com.microblink.blinkid.image.Image;
 import com.microblink.blinkid.metadata.MetadataCallbacks;
 import com.microblink.blinkid.metadata.detection.FailedDetectionCallback;
 import com.microblink.blinkid.metadata.detection.quad.DisplayableQuadDetection;
@@ -42,6 +46,20 @@ import com.microblink.blinkid.view.recognition.ScanResultListener;
 import com.microblink.blinkid.view.viewfinder.quadview.QuadViewManager;
 import com.microblink.blinkid.view.viewfinder.quadview.QuadViewManagerFactory;
 import com.microblink.blinkid.view.viewfinder.quadview.QuadViewPreset;
+import com.microblink.blinkinput.directApi.DirectApiErrorListener;
+import com.microblink.blinkinput.directApi.RecognizerRunner;
+import com.microblink.blinkinput.entities.detectors.quad.document.DocumentDetector;
+import com.microblink.blinkinput.entities.detectors.quad.document.DocumentSpecification;
+import com.microblink.blinkinput.entities.detectors.quad.document.DocumentSpecificationPreset;
+import com.microblink.blinkinput.entities.processors.imageReturn.ImageReturnProcessor;
+import com.microblink.blinkinput.entities.recognizers.blinkbarcode.barcode.BarcodeRecognizer;
+import com.microblink.blinkinput.entities.recognizers.detector.DetectorRecognizer;
+import com.microblink.blinkinput.entities.recognizers.templating.ProcessorGroup;
+import com.microblink.blinkinput.entities.recognizers.templating.TemplatingClass;
+import com.microblink.blinkinput.entities.recognizers.templating.dewarpPolicies.DPIBasedDewarpPolicy;
+import com.microblink.blinkinput.geometry.Rectangle;
+import com.microblink.blinkinput.image.ImageBuilder;
+import com.microblink.blinkinput.image.InputImage;
 
 import java.util.Timer;
 import java.util.TimerTask;
@@ -52,12 +70,19 @@ public class MyScanActivity extends Activity implements ScanResultListener, Came
 
     private Handler mHandler = new Handler();
 
-    private RecognizerBundle mRecognizerBundle;
+    private RecognizerBundle mBlinkIdRecognizerBundle;
+
+    private com.microblink.blinkinput.entities.recognizers.RecognizerBundle mBlinkInputRecognizerBundle;
 
     /**
      * This is a RecognizerView - it contains camera view and can contain camera overlays
      */
-    RecognizerRunnerView mRecognizerView;
+    RecognizerRunnerView mBlinkIdRecognizerView;
+
+    /**
+     * Direct API for BlinkInput.
+     */
+    RecognizerRunner mBlinkInputRecognizerRunner;
     /**
      * CameraPermissionManager is provided helper class that can be used to obtain the permission to use camera.
      * It is used on Android 6.0 (API level 23) or newer.
@@ -90,24 +115,27 @@ public class MyScanActivity extends Activity implements ScanResultListener, Came
 
     private Timer mCustomTimer = null;
 
+    // just a simple bool to indicate which result to pack into the result intent
+    private boolean mUsingBlinkInput = false;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_my_scan);
-        mRecognizerView = findViewById(R.id.recognizerView);
+        mBlinkIdRecognizerView = findViewById(R.id.recognizerView);
 
-        mRecognizerBundle = new RecognizerBundle(createRecognizers());
-        mRecognizerBundle.setNumMsBeforeTimeout(5000); // 5 seconds timeout
-        mRecognizerView.setRecognizerBundle(mRecognizerBundle);
+        mBlinkIdRecognizerBundle = new RecognizerBundle(createRecognizers());
+        mBlinkIdRecognizerBundle.setNumMsBeforeTimeout(5000); // 5 seconds timeout
+        mBlinkIdRecognizerView.setRecognizerBundle(mBlinkIdRecognizerBundle);
 
         // scan result listener will be notified when scan result gets available
-        mRecognizerView.setScanResultListener(this);
+        mBlinkIdRecognizerView.setScanResultListener(this);
         // camera events listener receives events such as when camera preview has started
         // or there was an error while starting the camera
-        mRecognizerView.setCameraEventsListener(this);
+        mBlinkIdRecognizerView.setCameraEventsListener(this);
         // orientation allowed listener is asked if orientation is allowed when device orientation
         // changes - if orientation is allowed, rotatable views will be rotated to that orientation
-        mRecognizerView.setOrientationAllowedListener(new OrientationAllowedListener() {
+        mBlinkIdRecognizerView.setOrientationAllowedListener(new OrientationAllowedListener() {
             @Override
             public boolean isOrientationAllowed(Orientation orientation) {
                 // allow all orientations
@@ -116,16 +144,16 @@ public class MyScanActivity extends Activity implements ScanResultListener, Came
         });
         // on size changed listener is notified whenever the size of the view is changed (for example
         // when transforming the view from portrait to landscape or vice versa)
-        mRecognizerView.setOnSizeChangedListener(this);
+        mBlinkIdRecognizerView.setOnSizeChangedListener(this);
 
         setupMetadataCallbacks();
 
         // set initial orientation
-        mRecognizerView.setInitialOrientation(Orientation.ORIENTATION_PORTRAIT);
+        mBlinkIdRecognizerView.setInitialOrientation(Orientation.ORIENTATION_PORTRAIT);
 
         // set camera aspect mode to FILL - this will use the entire surface
         // for camera preview, instead of letterboxing it
-        mRecognizerView.setAspectMode(CameraAspectMode.ASPECT_FILL);
+        mBlinkIdRecognizerView.setAspectMode(CameraAspectMode.ASPECT_FILL);
 
         // instantiate the camera permission manager
         mCameraPermissionManager = new CameraPermissionManager(this);
@@ -138,7 +166,7 @@ public class MyScanActivity extends Activity implements ScanResultListener, Came
         }
 
         // create scanner (make sure scan settings and listeners were set prior calling create)
-        mRecognizerView.create();
+        mBlinkIdRecognizerView.create();
 
         // after scanner is created, you can add your views to it
 
@@ -147,7 +175,7 @@ public class MyScanActivity extends Activity implements ScanResultListener, Came
         // each of them can be found in javadoc. This method automatically adds the QuadView as a
         // child of RecognizerView.
         // Here we use preset which sets up quad view in the same style as used in built-in BlinkID DocumentScan activity.
-        mQvManager = QuadViewManagerFactory.createQuadViewFromPreset(mRecognizerView, QuadViewPreset.DEFAULT_CORNERS_FROM_PHOTOPAY_ACTIVITY);
+        mQvManager = QuadViewManagerFactory.createQuadViewFromPreset(mBlinkIdRecognizerView, QuadViewPreset.DEFAULT_CORNERS_FROM_PHOTOPAY_ACTIVITY);
 
         // initialize buttons and status view
         View view = getLayoutInflater().inflate(R.layout.default_blinkid_viewfinder, null);
@@ -169,7 +197,10 @@ public class MyScanActivity extends Activity implements ScanResultListener, Came
 
         // add buttons and status view as rotatable view to BlinkIdView (it will be rotated even if activity remains in portrait/landscape)
         // allowed orientations are controlled via OrientationAllowedListener
-        mRecognizerView.addChildView(view, true);
+        mBlinkIdRecognizerView.addChildView(view, true);
+
+        // immediately initialize BlinkInput DirectAPI in case it will be needed
+        initializeBlinkInputDirectAPI();
     }
 
     private void setupMetadataCallbacks() {
@@ -203,7 +234,38 @@ public class MyScanActivity extends Activity implements ScanResultListener, Came
             }
         });
 
-        mRecognizerView.setMetadataCallbacks(metadataCallbacks);
+        mBlinkIdRecognizerView.setMetadataCallbacks(metadataCallbacks);
+    }
+
+    private DisplayableQuadDetection convertDisplayableQuad(com.microblink.blinkinput.metadata.detection.quad.DisplayableQuadDetection dq) {
+        int detectionStatus = dq.getDetectionStatus().ordinal();
+        float[] transformMatrix = new float[9];
+        dq.getTransformMatrix().getValues(transformMatrix);
+        float[] displayLocation = new float[8];
+        dq.getDisplayLocation().toFloatArray(displayLocation);
+
+        return new DisplayableQuadDetection(detectionStatus, transformMatrix, displayLocation);
+    }
+
+    private void setupBlinkInputMetadataCallbacks() {
+        com.microblink.blinkinput.metadata.MetadataCallbacks metadataCallbacks = new com.microblink.blinkinput.metadata.MetadataCallbacks();
+        // add callback for each metadata type you're interested in
+        metadataCallbacks.setQuadDetectionCallback(new com.microblink.blinkinput.metadata.detection.quad.QuadDetectionCallback() {
+            @Override
+            public void onQuadDetection(@NonNull com.microblink.blinkinput.metadata.detection.quad.DisplayableQuadDetection displayableQuadDetection) {
+                // begin quadrilateral animation to detected quadrilateral
+                mQvManager.animateQuadToDetectionPosition(convertDisplayableQuad(displayableQuadDetection));
+            }
+        });
+
+        metadataCallbacks.setFailedDetectionCallback(new com.microblink.blinkinput.metadata.detection.FailedDetectionCallback() {
+            @Override
+            public void onDetectionFailed() {
+                mQvManager.animateQuadToDefaultPosition();
+            }
+        });
+
+        mBlinkInputRecognizerRunner.setMetadataCallbacks(metadataCallbacks);
     }
 
     private Recognizer[] createRecognizers() {
@@ -212,82 +274,134 @@ public class MyScanActivity extends Activity implements ScanResultListener, Came
         return new Recognizer[]{genericRecognizer};
     }
 
-//    private Recognizer[] createFallbackRecognizers() {
-//        BarcodeRecognizer barcodeRecognizer = new BarcodeRecognizer();
-//        barcodeRecognizer.setScanPdf417(true);
-//        barcodeRecognizer.setScanQrCode(true);
-//        barcodeRecognizer.setScanUncertain(true);
-//
-//        // detector recognizer
-//        DocumentDetector idCardDetector = buildDocumentDetectorFromPreset(DocumentSpecificationPreset.DOCUMENT_SPECIFICATION_PRESET_ID1_CARD);
-//        DetectorRecognizer detectorRecognizer = new DetectorRecognizer(idCardDetector);
-//
-//        // processor that will simply save obtained image
-//        ImageReturnProcessor imageReturnProcessor = new ImageReturnProcessor();
-//        // processor group that will be executed on the detected document location
-//        ProcessorGroup processorGroup = new ProcessorGroup(
-//                // process entire detected location
-//                new Rectangle(0.f, 0.f, 1.f, 1.f),
-//                // dewarp height will be calculated based on actual physical size of detected
-//                // location and requested DPI
-//                new DPIBasedDewarpPolicy(200),
-//                // only image is needed
-//                imageReturnProcessor
-//        );
-//
-//        // Templating class is used to define how specific document type should be processed.
-//        // Only image should be returned, which means that classification of the document
-//        // based on the processed data is not needed, so only one document class is defined.
-//        TemplatingClass documentClass = new TemplatingClass();
-//        // prepared processor group is added to classification processor groups because
-//        // they are executed before classification
-//        documentClass.setClassificationProcessorGroups(processorGroup);
-//        detectorRecognizer.setTemplatingClasses(documentClass);
-//
-//        return new Recognizer[]{barcodeRecognizer, detectorRecognizer};
-//    }
-//
-//    private DocumentDetector buildDocumentDetectorFromPreset(DocumentSpecificationPreset documentSpecPreset) {
-//        // create document specification from preset
-//        DocumentSpecification documentSpec = DocumentSpecification.createFromPreset(documentSpecPreset);
-//        // prepare document detector with defined document specification
-//        DocumentDetector documentDetector = new DocumentDetector(documentSpec);
-//        // set minimum number of stable detections to return detector result
-//        documentDetector.setNumStableDetectionsThreshold(3);
-//        return documentDetector;
-//    }
+    private Recognizer[] createFallbackRecognizers() {
+        FrameGrabberRecognizer frameGrabberRecognizer = new FrameGrabberRecognizer(new FrameCallback() {
+            @Override
+            public void onFrameAvailable(@Nullable Image image, boolean focused, double quality) {
+                if (image != null && mBlinkInputRecognizerRunner != null && mBlinkInputRecognizerRunner.getCurrentState() == RecognizerRunner.State.READY) {
+                    // need to clone the image in order to avoid accessing released memory
+                    Bitmap copied = image.convertToBitmap();
+                    if ( copied != null ) {
+                        mBlinkInputRecognizerRunner.recognizeBitmap(
+                            copied,
+                            com.microblink.blinkinput.hardware.orientation.Orientation.values()[image.getImageOrientation().ordinal()],
+                            new com.microblink.blinkinput.view.recognition.ScanResultListener() {
+                                @Override
+                                public void onScanningDone(@NonNull com.microblink.blinkinput.recognition.RecognitionSuccessType recognitionSuccessType) {
+                                    MyScanActivity.this.onScanningDone(RecognitionSuccessType.values()[recognitionSuccessType.ordinal()]);
+                                }
 
+                                @Override
+                                public void onUnrecoverableError(@NonNull Throwable throwable) {
+                                    MyScanActivity.this.onUnrecoverableError(throwable);
+                                }
+                            }
+                        );
+                    } else {
+                        Log.e(this, "Failed to convert image to bitmap");
+                    }
+                }
+            }
+
+            @Override
+            public int describeContents() {
+                return 0;
+            }
+
+            @Override
+            public void writeToParcel(@NonNull Parcel dest, int flags) {
+
+            }
+        });
+
+        return new Recognizer[]{frameGrabberRecognizer};
+    }
+
+    private void initializeBlinkInputDirectAPI() {
+        BarcodeRecognizer barcodeRecognizer = new BarcodeRecognizer();
+        barcodeRecognizer.setScanPdf417(true);
+        barcodeRecognizer.setScanQrCode(true);
+        barcodeRecognizer.setScanUncertain(true);
+
+        // detector recognizer
+        DocumentDetector idCardDetector = buildDocumentDetectorFromPreset(DocumentSpecificationPreset.DOCUMENT_SPECIFICATION_PRESET_ID1_CARD);
+        DetectorRecognizer detectorRecognizer = new DetectorRecognizer(idCardDetector);
+
+        // processor that will simply save obtained image
+        ImageReturnProcessor imageReturnProcessor = new ImageReturnProcessor();
+        // processor group that will be executed on the detected document location
+        ProcessorGroup processorGroup = new ProcessorGroup(
+                // process entire detected location
+                new Rectangle(0.f, 0.f, 1.f, 1.f),
+                // dewarp height will be calculated based on actual physical size of detected
+                // location and requested DPI
+                new DPIBasedDewarpPolicy(200),
+                // only image is needed
+                imageReturnProcessor
+        );
+
+        // Templating class is used to define how specific document type should be processed.
+        // Only image should be returned, which means that classification of the document
+        // based on the processed data is not needed, so only one document class is defined.
+        TemplatingClass documentClass = new TemplatingClass();
+        // prepared processor group is added to classification processor groups because
+        // they are executed before classification
+        documentClass.setClassificationProcessorGroups(processorGroup);
+        detectorRecognizer.setTemplatingClasses(documentClass);
+
+        mBlinkInputRecognizerBundle = new com.microblink.blinkinput.entities.recognizers.RecognizerBundle(barcodeRecognizer, detectorRecognizer);
+
+        mBlinkInputRecognizerRunner = RecognizerRunner.getSingletonInstance();
+        mBlinkInputRecognizerRunner.initialize(this, mBlinkInputRecognizerBundle, new DirectApiErrorListener() {
+            @Override
+            public void onRecognizerError(@NonNull Throwable throwable) {
+                com.microblink.blinkid.util.Log.e(this, throwable, "Error in BlinkInput initialization!");
+                handleError();
+            }
+        });
+        setupBlinkInputMetadataCallbacks();
+    }
+
+    private DocumentDetector buildDocumentDetectorFromPreset(DocumentSpecificationPreset documentSpecPreset) {
+        // create document specification from preset
+        DocumentSpecification documentSpec = DocumentSpecification.createFromPreset(documentSpecPreset);
+        // prepare document detector with defined document specification
+        DocumentDetector documentDetector = new DocumentDetector(documentSpec);
+        // set minimum number of stable detections to return detector result
+        documentDetector.setNumStableDetectionsThreshold(3);
+        return documentDetector;
+    }
 
     @Override
     protected void onResume() {
         super.onResume();
         // all activity lifecycle events must be passed on to RecognizerView
-        if (mRecognizerView != null) {
-            mRecognizerView.resume();
+        if (mBlinkIdRecognizerView != null) {
+            mBlinkIdRecognizerView.resume();
         }
         mMediaPlayer = MediaPlayer.create(this, R.raw.beep);
 
         // start the timer
-//        if (mCustomTimer == null) {
-//            mCustomTimer = new Timer();
-//            mCustomTimer.schedule(new TimerTask() {
-//                @Override
-//                public void run() {
-//                    if (mRecognizerView != null) {
-//                        mRecognizerView.pauseScanning();
-//                        handleTimeout();
-//                    }
-//                }
-//            }, 5000);
-//        }
+        if (mCustomTimer == null) {
+            mCustomTimer = new Timer();
+            mCustomTimer.schedule(new TimerTask() {
+                @Override
+                public void run() {
+                    if (mBlinkIdRecognizerView != null) {
+                        mBlinkIdRecognizerView.pauseScanning();
+                        handleTimeout();
+                    }
+                }
+            }, 5000);
+        }
     }
 
     @Override
     protected void onStart() {
         super.onStart();
         // all activity lifecycle events must be passed on to RecognizerView
-        if (mRecognizerView != null) {
-            mRecognizerView.start();
+        if (mBlinkIdRecognizerView != null) {
+            mBlinkIdRecognizerView.start();
         }
     }
 
@@ -295,8 +409,8 @@ public class MyScanActivity extends Activity implements ScanResultListener, Came
     protected void onPause() {
         super.onPause();
         // all activity lifecycle events must be passed on to RecognizerView
-        if (mRecognizerView != null) {
-            mRecognizerView.pause();
+        if (mBlinkIdRecognizerView != null) {
+            mBlinkIdRecognizerView.pause();
         }
         if (mMediaPlayer != null) {
             mMediaPlayer = null;
@@ -311,8 +425,8 @@ public class MyScanActivity extends Activity implements ScanResultListener, Came
     protected void onStop() {
         super.onStop();
         // all activity lifecycle events must be passed on to RecognizerView
-        if (mRecognizerView != null) {
-            mRecognizerView.stop();
+        if (mBlinkIdRecognizerView != null) {
+            mBlinkIdRecognizerView.stop();
         }
     }
 
@@ -320,8 +434,11 @@ public class MyScanActivity extends Activity implements ScanResultListener, Came
     protected void onDestroy() {
         super.onDestroy();
         // all activity lifecycle events must be passed on to RecognizerView
-        if (mRecognizerView != null) {
-            mRecognizerView.destroy();
+        if (mBlinkIdRecognizerView != null) {
+            mBlinkIdRecognizerView.destroy();
+        }
+        if (mBlinkInputRecognizerRunner != null) {
+            mBlinkInputRecognizerRunner.terminate();
         }
     }
 
@@ -353,26 +470,33 @@ public class MyScanActivity extends Activity implements ScanResultListener, Came
             }
         });
 
-        mRecognizerView.pauseScanning();
+        mBlinkIdRecognizerView.pauseScanning();
 
         if (recognitionSuccessType == RecognitionSuccessType.SUCCESSFUL) {
             Intent resultIntent = new Intent();
-            mRecognizerBundle.saveToIntent(resultIntent);
+            if (mUsingBlinkInput) {
+                // save BlinkInput results
+                mBlinkInputRecognizerBundle.saveToIntent(resultIntent);
+            } else {
+                // save BlinkID results
+                mBlinkIdRecognizerBundle.saveToIntent(resultIntent);
+            }
             setResult(RESULT_OK, resultIntent);
             finish();
         } else {
-//            handleTimeout();
+            handleTimeout();
         }
     }
 
-//    private void handleTimeout() {
-//        displayText(R.string.msg_timeout);
-//        // timeout reached, reconfigure to using barcode + detector recognizer
-//        // and then resume
-//        mRecognizerBundle = new RecognizerBundle(createFallbackRecognizers());
-//        mRecognizerView.reconfigureRecognizers(mRecognizerBundle);
-//        mRecognizerView.resumeScanning(true);
-//    }
+    private void handleTimeout() {
+        displayText(R.string.msg_timeout);
+        // timeout reached, reconfigure to using barcode + detector recognizer
+        // and then resume
+        mBlinkIdRecognizerBundle = new RecognizerBundle(createFallbackRecognizers());
+        mBlinkIdRecognizerView.reconfigureRecognizers(mBlinkIdRecognizerBundle);
+        mBlinkIdRecognizerView.resumeScanning(true);
+        mUsingBlinkInput = true;
+    }
 
     @Override
     public void onUnrecoverableError(@NonNull Throwable throwable) {
@@ -392,7 +516,7 @@ public class MyScanActivity extends Activity implements ScanResultListener, Came
     }
 
     private void enableTorchButtonIfPossible() {
-        if (!mRecognizerView.isCameraTorchSupported() || mTorchButton == null) {
+        if (!mBlinkIdRecognizerView.isCameraTorchSupported() || mTorchButton == null) {
             return;
         }
 
@@ -406,7 +530,7 @@ public class MyScanActivity extends Activity implements ScanResultListener, Came
     }
 
     private void onTorchBtnClick() {
-        mRecognizerView.setTorchState(!mTorchEnabled, new SuccessCallback() {
+        mBlinkIdRecognizerView.setTorchState(!mTorchEnabled, new SuccessCallback() {
             @Override
             public void onOperationDone(final boolean success) {
                 if (!success) {
