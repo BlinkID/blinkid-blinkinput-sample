@@ -49,7 +49,7 @@
     public *;
 }
 
--keep class com.microblink.blinkid.result.extract.RecognitionResultEntry {
+-keep class com.microblink.libutils.result.extract.RecognitionResultEntry {
     public *;
 }
 

@@ -2,8 +2,8 @@ package com.microblink;
 
 import android.app.Application;
 
-import com.microblink.blinkid.result.extract.ResultExtractorFactoryProvider;
-import com.microblink.blinkid.result.extract.blinkidcustom.BlinkIdCustomResultExtractorFactory;
+import com.microblink.libutils.result.extract.ResultExtractorFactoryProvider;
+import com.microblink.libutils.result.extract.blinkidcustom.BlinkIdCustomResultExtractorFactory;
 
 public final class BlinkIdSampleApp extends Application {
 

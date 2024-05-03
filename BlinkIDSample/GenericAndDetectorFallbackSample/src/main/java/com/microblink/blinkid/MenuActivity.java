@@ -5,9 +5,9 @@ import android.content.pm.ActivityInfo;
 import android.os.Bundle;
 import android.widget.Toast;
 
-import com.microblink.blinkid.menu.MenuListItem;
-import com.microblink.blinkid.menu.ResultHandlerMenuActivity;
-import com.microblink.blinkid.result.activity.RecognizerBundleResultActivity;
+import com.microblink.libutils.menu.MenuListItem;
+import com.microblink.libutils.menu.ResultHandlerMenuActivity;
+import com.microblink.libutils.result.activity.RecognizerBundleResultActivity;
 import com.microblink.blinkid.util.RecognizerCompatibility;
 import com.microblink.blinkid.util.RecognizerCompatibilityStatus;
 
