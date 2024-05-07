@@ -1,1 +1,1 @@
-include ':LibBlinkInput', ':LibUtils', ':GenericAndDetectorFallbackSample'
+include ':LibBlinkInput', ':LibBlinkID', ':LibUtils', ':GenericAndDetectorFallbackSample'
