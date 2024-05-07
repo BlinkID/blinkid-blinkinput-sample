@@ -2,10 +2,8 @@ package com.microblink.libutils.result.extract.blinkinput;
 
 import android.content.Context;
 
-import com.microblink.blinkinput.entities.parsers.Parser;
 import com.microblink.blinkinput.entities.processors.Processor;
 import com.microblink.blinkinput.entities.processors.imageReturn.ImageReturnProcessor;
-import com.microblink.blinkinput.entities.processors.parserGroup.ParserGroupProcessor;
 import com.microblink.blinkinput.entities.recognizers.templating.ProcessorGroup;
 import com.microblink.blinkinput.entities.recognizers.templating.TemplatingClass;
 import com.microblink.blinkinput.entities.recognizers.templating.TemplatingRecognizer;
@@ -49,9 +47,7 @@ public class TemplateDataExtractor {
 
     private void addProcessorResults(ProcessorGroup processorGroup) {
         for (Processor p : processorGroup.getProcessors()) {
-            if (p instanceof ParserGroupProcessor) {
-                addParserResults((ParserGroupProcessor) p);
-            } else if (p instanceof ImageReturnProcessor) {
+            if (p instanceof ImageReturnProcessor) {
                 Image img = ((ImageReturnProcessor) p).getResult().getRawImage();
                 mExtractedData.add(new RecognitionResultEntry("ImageReturnProcessor", img != null ? img.convertToBitmap() : null));
                 byte[] encodedImg = ((ImageReturnProcessor) p).getResult().getEncodedImage();
@@ -67,11 +63,4 @@ public class TemplateDataExtractor {
             }
         }
     }
-
-    private void addParserResults(ParserGroupProcessor parserGroupProcessor) {
-        for (Parser parser : parserGroupProcessor.getParsers()) {
-            mExtractedData.add(new RecognitionResultEntry(parser.getClass().getSimpleName(), parser.getResult().toString()));
-        }
-    }
-
 }
