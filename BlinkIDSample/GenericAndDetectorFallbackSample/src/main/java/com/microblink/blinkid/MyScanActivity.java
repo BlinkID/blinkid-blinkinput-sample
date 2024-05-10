@@ -280,26 +280,29 @@ public class MyScanActivity extends Activity implements ScanResultListener, Came
             public void onFrameAvailable(@Nullable Image image, boolean focused, double quality) {
                 if (image != null && mBlinkInputRecognizerRunner != null && mBlinkInputRecognizerRunner.getCurrentState() == RecognizerRunner.State.READY) {
                     // need to clone the image in order to avoid accessing released memory
-                    Bitmap copied = image.convertToBitmap();
-                    if ( copied != null ) {
-                        mBlinkInputRecognizerRunner.recognizeBitmap(
-                            copied,
-                            com.microblink.blinkinput.hardware.orientation.Orientation.values()[image.getImageOrientation().ordinal()],
-                            new com.microblink.blinkinput.view.recognition.ScanResultListener() {
-                                @Override
-                                public void onScanningDone(@NonNull com.microblink.blinkinput.recognition.RecognitionSuccessType recognitionSuccessType) {
-                                    MyScanActivity.this.onScanningDone(RecognitionSuccessType.values()[recognitionSuccessType.ordinal()]);
-                                }
-
-                                @Override
-                                public void onUnrecoverableError(@NonNull Throwable throwable) {
-                                    MyScanActivity.this.onUnrecoverableError(throwable);
-                                }
+                    Image clone = image.clone();
+                    InputImage inputImage = ImageBuilder.buildInputImageFromByteBuffer(
+                            clone.getBuffer(),
+                            clone.getRawWidth(),
+                            clone.getRawHeight(),
+                            clone.getRowStride(),
+                            com.microblink.blinkinput.hardware.orientation.Orientation.values()[clone.getImageOrientation().ordinal()],
+                            clone
+                    );
+                    mBlinkInputRecognizerRunner.recognizeVideoImage(
+                        inputImage,
+                        new com.microblink.blinkinput.view.recognition.ScanResultListener() {
+                            @Override
+                            public void onScanningDone(@NonNull com.microblink.blinkinput.recognition.RecognitionSuccessType recognitionSuccessType) {
+                                MyScanActivity.this.onScanningDone(RecognitionSuccessType.values()[recognitionSuccessType.ordinal()]);
                             }
-                        );
-                    } else {
-                        Log.e(this, "Failed to convert image to bitmap");
-                    }
+
+                            @Override
+                            public void onUnrecoverableError(@NonNull Throwable throwable) {
+                                MyScanActivity.this.onUnrecoverableError(throwable);
+                            }
+                        }
+                    );
                 }
             }
 
